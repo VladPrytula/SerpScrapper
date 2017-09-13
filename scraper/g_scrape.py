@@ -145,7 +145,6 @@ class AmazonScraper(BaseScraper):
                     yield (name, name_href)
 
         for query in tqdm(f):
-            print(query)
             url = 'http' + self.make_query(query)[5:]
             headers = {
                 'User-Agent': self.random_user_agent()}
@@ -191,7 +190,6 @@ if __name__ == '__main__':
         with codecs.open(parsed_args.qfile, "r", "utf-8") as qf:
             with codecs.open(parsed_args.output, "a", "utf-8") as of:
                 for l in scraper.scrape(qf):
-                    ## TODO: this should be dependent on the class
                     scraper.save(l, of)
     else:
         print("no query file provided")
