@@ -146,11 +146,9 @@ class AmazonScraper(BaseScraper):
                         "class": "a-size-small a-color-base"}).text)
                     name_href = (BeautifulSoup(h.encode('utf-8'), "lxml", from_encoding='utf-8').find("a", {
                         "class": "a-link-normal s-ref-text-link"})['href'])
-                except Exception:
-                    name = "none"
-                    name_href = "none"
-                if name is not "none":
                     yield (name, name_href)
+                except Exception:
+                    pass
 
         for query in tqdm(f):
             url = self.make_query(query)  # using https, if not : = 'http' + self.make_query(query)[5:]
