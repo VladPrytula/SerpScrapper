@@ -154,8 +154,7 @@ class AmazonScraper(BaseScraper):
 
         for query in tqdm(f):
             url = self.make_query(query)  # using https, if not : = 'http' + self.make_query(query)[5:]
-            headers = {
-                'User-Agent': self.random_user_agent()}
+            headers = {'User-Agent': self.random_user_agent()}
             r = requests.get(url, headers=headers)
             r.encoding = 'utf-8'
             time.sleep(5)
