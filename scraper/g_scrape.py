@@ -46,6 +46,10 @@ class BaseScraper(object):
         self.user_agents = [
             'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_10_5) AppleWebKit/600.8.9 (KHTML, like Gecko) Version/8.0.8 Safari/600.8.9',
             'Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/45.0.2454.101 Safari/537.36',
+            'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_12_6) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/60.0.3112.113 Safari/537.36',
+            'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_11_6) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/60.0.3112.113 Safari/537.36',
+            'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_10_6) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/60.0.3112.113 Safari/537.36',
+            'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_12_2) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/60.0.3112.113 Safari/537.36'
         ]
 
     @abc.abstractmethod
@@ -115,11 +119,15 @@ class AmazonScraper(BaseScraper):
             except TimeoutException:
                 print("Box or Button not found in amazon")
 
-        driver = init_driver()
-        query_url = lookup(driver, query)
-        time.sleep(5)
-        driver.quit()
-        return query_url
+        if self.web_driver == "explicit":
+            print self.web_driver
+            driver = init_driver()
+            query_url = lookup(driver, query)
+            time.sleep(5)
+            driver.quit()
+            return query_url
+        else:
+            return self.url_base + self.url_query + query.replace(" ", "+")
 
     def scrape(self, f):
         def extract_categories_refs(element):
@@ -145,12 +153,13 @@ class AmazonScraper(BaseScraper):
                     yield (name, name_href)
 
         for query in tqdm(f):
-            url = 'http' + self.make_query(query)[5:]
+            url = self.make_query(query)  # using https, if not : = 'http' + self.make_query(query)[5:]
             headers = {
                 'User-Agent': self.random_user_agent()}
             r = requests.get(url, headers=headers)
             r.encoding = 'utf-8'
             time.sleep(5)
+            # here I am restricting to leftNavContainer only since the whole page is to slow to be processed
             strainer = SoupStrainer('div', attrs={'id': 'leftNavContainer'})
             soup = BeautifulSoup(r.content, 'lxml', parse_only=strainer, from_encoding='utf-8')
             link = soup.find("div", {"aria-live": "polite"})
@@ -159,9 +168,11 @@ class AmazonScraper(BaseScraper):
                 print u"ref is {}".format(name_href)
                 yield (name, name_href)
 
-    def __init__(self):
+    def __init__(self, web_driver):
         super(AmazonScraper, self).__init__()
         self.url_base = "http://www.amazon.de"
+        self.url_query = "/s/ref=nb_sb_noss_2?__mk_de_DE=%C3%85M%C3%85%C5%BD%C3%95%C3%91&url=search-alias%3Daps&field-keywords="
+        self.web_driver = web_driver
 
 
 def get_args():
@@ -169,19 +180,24 @@ def get_args():
 
     parser = argparse.ArgumentParser(description='google serp scraper')
     parser.add_argument('--noarg', action="store_true", default=False)
-    parser.add_argument('--qfile', action="store", dest="qfile", default='qFile.txt')
+    parser.add_argument('--qfile', action="store", dest="qfile", default='qFile.txt',
+                        help="use a relative path to a file that contains queries")
     parser.add_argument('--sfile', action="store", dest="sfile", default='seFile.txt')
     parser.add_argument('--output', action="store", dest="output", default='out.txt')
     parser.add_argument('--filter', action="store", dest="filter")
     parser.add_argument('--addsonly', action="store", dest="addsonly")
-    parser.add_argument('--engine', action="store", dest="engine")
+    parser.add_argument('--engine', action="store", dest="engine",
+                        help="select engine to scrape from. Can be either google or amazon keyword")
+    parser.add_argument('--web_driver', action="store", dest="web_driver",
+                        help="use explicit keyword if you want to use webdriver")
     return parser.parse_args()
 
 
 if __name__ == '__main__':
     parsed_args = get_args()
     if parsed_args.engine == "amazon":
-        scraper = AmazonScraper()
+        print parsed_args.web_driver
+        scraper = AmazonScraper(parsed_args.web_driver)
     elif parsed_args.engine == "google":
         scraper = GoogleScraper()
 
